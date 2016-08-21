@@ -16,7 +16,7 @@ $tglAkhir 	= isset($_POST['cmbTglAkhir']) ? $_POST['cmbTglAkhir'] :date('Y-m-d')
 // Jika tombol filter tanggal (Tampilkan) diklik
 if (isset($_POST['btnTampil'])) {
 	// Membuat sub SQL filter data berdasarkan 2 tanggal (periode)
-	$filterSQL = "WHERE ( tanggal BETWEEN '".($tglAwal)."' AND '".($tglAkhir)."')";
+	$filterSQL = " transaksi.tanggal BETWEEN '".($tglAwal)."' AND '".($tglAkhir)."' ";
 }
 else {
 	// Membaca data tanggal dari URL, saat menu Pages diklik
@@ -24,7 +24,7 @@ else {
 	$tglAkhir 	= isset($_GET['tglAkhir']) ? $_GET['tglAkhir'] : $tglAkhir; 
 	
 	// Membuat sub SQL filter data berdasarkan 2 tanggal (periode)
-	$filterSQL = "WHERE ( tanggal BETWEEN '".($tglAwal)."' AND '".($tglAkhir)."')";
+	$filterSQL = " transaksi.tanggal BETWEEN '".($tglAwal)."' AND '".($tglAkhir)."' ";
 }
 ?>
 
@@ -136,61 +136,70 @@ www.jamku.com </div>
         
             <div class="form_row3">
               <label class="contact">
-              <table width="747" height="116" border="0">
+              <table width="745" height="130" border="0">
   <tr>
-    <td width="32" align="center">No.</td>
-    <td width="96" align="center">Tanggal</td>
-    <td width="140" align="center">No. Transaksi</td>
-    <td width="170" align="center">Penerima</td>
-    <td width="134" align="center">Status</td>
-    <td width="93" align="center">Total</td>
-    <td width="52" align="center">Aksi</td>
+    <td width="27" height="26" align="center">No.</td>
+    <td width="67" align="center">Tanggal</td>
+    <td width="95" align="center">No. Transaksi</td>
+    <td width="93" align="center">Kode Barang</td>
+    <td width="145" align="center">Nama Barang</td>
+    <td width="102" align="center">Harga</td>
+    <td width="38" align="center">Jumlah</td>
+    <td width="98" align="center">Total</td>
+    <td width="42" align="center">Aksi</td>
   </tr>
   <tr>
-    <td height="18" colspan="7" align="left">---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</td>
+    <td height="18" colspan="9" align="left">---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</td>
     </tr>
 <?php
 $lama	= 2;
 $query_hapus = mysql_query( "DELETE FROM transaksi
          WHERE DATEDIFF(CURDATE(), tanggal) > $lama AND konfirmasi='belum transfer' ");
 
-$query=mysql_query("SELECT * FROM transaksi $filterSQL ORDER BY id_transaksi desc limit $start, $per_hal");
+$query=mysql_query("SELECT transaksi.*, pemesanan.* FROM transaksi, pemesanan WHERE transaksi.id_transaksi=pemesanan.id_pesan AND $filterSQL ORDER BY transaksi.id_transaksi=pemesanan.id_pesan desc limit $start, $per_hal");
 $no=0;
 	while($data=mysql_fetch_array($query)){
 	$no++;
 	$jumData	= mysql_num_rows($query);
-	$member		= $data['id_member'];
-	$baca		= mysql_query("SELECT * FROM member WHERE id_member='$member' ");
-	$bacadata = mysql_fetch_array($baca);
 ?>      
   <tr>
     <td height="30" align="center"><?php echo $no ?></td>
     <td align="center"><?php echo $data['tanggal']; ?></td>
     <td align="center"><?php echo $data['id_transaksi'];?></td>
-    <td align="center"><?php echo $data['penerima']; ?></td>
-    <td align="center"><?php echo $data['status']; ?></td>
-    <td align="center"><?php echo $data['total']; ?></td>
-    <td align="center"> <a href="transaksi-cetak.php?cetak=<?php echo $data['id_transaksi']; ?>" title="cetak" target="_blank"><div class="fa fa-print fa-1.5x"></div></a> |  <a href="detail-transaksi.php?detail=<?php echo $data['id_transaksi']; ?>" title="lihat detail"><div class="fa fa-eye fa-1.5x"></div></a></td>
+    <td align="center"><?php echo $data['id_produk'];?></td>
+    <td align="center">
+	<?php
+	$baca		= mysql_query("SELECT * FROM produk WHERE id_produk='$data[id_produk]' ");
+	$bacadata = mysql_fetch_array($baca);
+	 echo $bacadata['nama_produk']; ?></td>
+    <td align="center"><?php echo $bacadata['harga']; ?></td>
+    <td align="center"><?php echo $data['jumlah'];?></td>
+    <td align="center">
+	<?php 
+	$total	= $bacadata['harga'] * $data['jumlah'];
+	echo $total; ?></td>
+    <td align="center"><a href="laporan-detail.php?detail=<?php echo $data['id_produk']; ?>" title="lihat detail"><div class="fa fa-eye fa-1.5x"></div></a></td>
   </tr>
 <?php 
-	$grandtotal	= $grandtotal + $data['total'];
+	$grandtotal	= $grandtotal + $total;
 	} ?> 
   <tr>
     <td height="20" colspan="2" align="left" bgcolor="#dad0d0"><u><strong>Jumlah Data : <?php if ($jumData==0){
 		echo "Kosong";}else{ echo "$jumData";} ?></strong></u></td>
-    <td colspan="2" align="center" bgcolor="#DAD0D0">
+    <td colspan="3" align="center" bgcolor="#DAD0D0">
     <form action="laporan-cetak.php" method="post" target="_blank">
     <input name="tglawal" type="hidden" value="<?php echo $tglAwal;?>" />
     <input name="tglakhir" type="hidden" value="<?php echo $tglAkhir;?>" />
     <input name="filter" type="hidden" value="<?php echo $filterSQL;?>" />
-     <input name="total" type="hidden" value="<?php echo $grandtotal;?>" />
       <input name="admin" type="hidden" value="<?php echo $_SESSION['admin'];?>" />
-    <input type="submit" name="send" value=" Cetak Laporan per Periode "  />
+      <?php if ($jumData==0){
+    echo ""; }else{ echo "<input type='submit' name='send' value='Cetak Laporan per Periode'  />"; } ?>
     </form>
     </td>
-    <td align="center" bgcolor="#dad0d0"><u><strong>Total Pendapatan : </strong></u></td>
+    <td align="center" bgcolor="#dad0d0">&nbsp;</td>
+    <td align="center" bgcolor="#dad0d0">&nbsp;</td>
     <td align="center" bgcolor="#dad0d0"><u><strong><?php if ($grandtotal==0){echo "0";}else{echo"$grandtotal";}?></strong></u></td>
-    <td align="center">&nbsp;</td>
+    <td align="center" bgcolor="#dad0d0">&nbsp;</td>
   </tr>
 </table>
               </label>
