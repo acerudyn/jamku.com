@@ -14,6 +14,14 @@
 <?php
 include "koneksi.php";
 include "session.php";
+
+$per_hal		= 25;
+$jumlah_record	= mysql_query("SELECT COUNT(*) from transaksi");
+$jum			= mysql_result($jumlah_record, 0);
+$halaman		= ceil($jum / $per_hal);
+$page			= (isset($_GET['page'])) ? (int)$_GET['page'] : 1;
+$start			= ($page - 1) * $per_hal;
+
 date_default_timezone_set("Asia/Jakarta");
 $tanggal	= date("Y-m-d");
 $jam		= date("h:i:s a");
@@ -21,11 +29,9 @@ $jam		= date("h:i:s a");
 $tglawal	= $_POST['tglawal'];
 $tglakhir	= $_POST['tglakhir'];
 $filter 	= $_POST['filter'];
-$grandtotal	= $_POST['total'];
 $admin		= $_POST['admin'];
-
-$query		= mysql_query("SELECT * FROM admin WHERE id_admin='$admin'");
-$adm		= mysql_fetch_array($query);
+$myquery		= mysql_query("SELECT * FROM admin WHERE id_admin='$admin'");
+$adm		= mysql_fetch_array($myquery);
 
 ?>
 
@@ -62,22 +68,14 @@ www.jamku.com </div>
     <!-- end of menu tab -->
     
     <div class="crumb_navigation"></div>
-    <div class="left_content1"></div>
+    <div class="left_content"></div>
     <!-- end of left content -->
     
-    <div class="center_content1">
-      <div class="center_title_bar1">Laporan  Transaksi</div>
-   	  <div class="prod_box1">
-<?php
-$kodetrans=$_GET['cetak'];
-$sql=mysql_query("SELECT * FROM transaksi WHERE id_transaksi='$kodetrans'");
-$lihat=mysql_fetch_array($sql);
-
-	$kodemember=$lihat['id_member'];
-	$query=mysql_query("SELECT * FROM member WHERE id_member='$kodemember'");
-	$member=mysql_fetch_array($query);
-?>        
-        <table width="620" border="0" align="center">
+    <div class="center_content2">
+      <div class="center_title_bar2">Laporan  Transaksi Penjualan</div>
+   	  <div class="prod_box2">
+             
+        <table width="867" border="0" align="center">
   <tr>
     <td width="156"><strong>ID Admin</strong></td>
     <td width="14" align="left"><strong>:</strong></td>
@@ -99,23 +97,28 @@ $lihat=mysql_fetch_array($sql);
     <td><strong><?php echo "$tanggal - $jam"; ?></strong></td>
   </tr>
   <tr>
-    <td colspan="3" align="right"><strong>---------------------------------------------------------------------------------------------------------------------------------------------------------</strong></td>
+    <td colspan="3" align="right"><strong>----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</strong></td>
   </tr>
 </table>
 
-<table width="620" height="130" border="0" align="center">
+<table width="867" height="130" border="0" align="center">
   <tr>
-    <td width="33" height="26" align="center" bgcolor="#dad0d0"><strong>No.</strong></td>
-    <td width="128" align="center" bgcolor="#dad0d0"><strong>Tanggal Transaksi</strong></td>
-    <td width="156" align="center" bgcolor="#dad0d0"><strong>Nomor Transaski</strong></td>
-    <td width="165" align="center" bgcolor="#dad0d0"><strong>Nama Pembeli</strong></td>
-    <td width="116" align="center" bgcolor="#dad0d0"><strong>Total</strong></td>
+    <td width="30" height="26" align="center" bgcolor="#dad0d0"><strong>No.</strong></td>
+    <td width="112" align="center" bgcolor="#dad0d0"><strong>Tanggal Transaksi</strong></td>
+    <td width="114" align="center" bgcolor="#dad0d0"><strong>Nomor Transaski</strong></td>
+    <td width="82" align="center" bgcolor="#dad0d0"><strong>Kode Barang</strong></td>
+    <td width="118" align="center" bgcolor="#dad0d0"><strong>Nama Barang</strong></td>
+    <td width="72" align="center" bgcolor="#dad0d0"><strong>Harga Asli</strong></td>
+    <td width="73" align="center" bgcolor="#dad0d0"><strong>Harga Jual</strong></td>
+    <td width="50" align="center" bgcolor="#dad0d0"><strong>Jumlah</strong></td>
+    <td width="83" align="center" bgcolor="#dad0d0"><strong>Total</strong></td>
+    <td width="91" align="center" bgcolor="#dad0d0"><strong>Keuntungan</strong></td>
   </tr>
   <tr>
-    <td height="16" colspan="5" align="right">---------------------------------------------------------------------------------------------------------------------------------------------------------</td>
+    <td height="16" colspan="11" align="right">-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</td>
     </tr>
 <?php 
-$query=mysql_query("SELECT * FROM transaksi $filter ORDER BY id_transaksi");
+$query=mysql_query("SELECT transaksi.*, pemesanan.* FROM transaksi, pemesanan WHERE transaksi.id_transaksi=pemesanan.id_pesan AND $filter ORDER BY transaksi.id_transaksi=pemesanan.id_pesan desc limit $start, $per_hal");
 $no=0;
 	while($data=mysql_fetch_array($query)){
 	$no++;
@@ -125,34 +128,66 @@ $no=0;
 	$bacadata = mysql_fetch_array($baca);
 ?>    
   <tr>
-    <td height="22" align="center"><strong><?php echo $no;?></strong></td>
-    <td align="center"><strong><?php echo $data['tanggal'];?></strong></td>
-    <td align="center"><strong><?php echo $data['id_transaksi'];?></strong></td>
-    <td align="center"><strong><?php echo $bacadata['nama_member'];?></strong></td>
-    <td align="center"><strong><?php echo $data['total'];?></strong></td>
-  </tr>
+    <td height="22" align="center"><?php echo $no;?></td>
+    <td align="center"><?php echo $data['tanggal'];?></td>
+    <td align="center"><?php echo $data['id_transaksi'];?></td>
+    <td align="center"><?php echo $data['id_produk'];?></td>
+    <td align="center">
+    <?php
+	$baca		= mysql_query("SELECT * FROM produk WHERE id_produk='$data[id_produk]' ");
+	$bacadata = mysql_fetch_array($baca);
+	 echo $bacadata['nama_produk']; ?></td>
+    <td align="center">
+    <?php 
+	$untung		= 1/4 * $bacadata['harga'];
+	$harga_asli	= $bacadata['harga'] - $untung;
+	echo "$harga_asli";
+	?></td>
+    <td align="center"><?php echo $bacadata['harga'];?></td>
+    <td align="center"><?php echo $data['jumlah'];?></td>
+    <td align="center">
+    <?php 
+	$total		= $bacadata['harga'] * $data['jumlah'];
+	$total_awal	= $harga_asli * $data['jumlah'];
+	$selisih	= $total - $total_awal;
+	$keuntungan	= $keuntungan + $selisih;
+	echo "$total";
+	?>
+    </td>
+    <td colspan="2" align="center"><?php echo "$selisih";?></td>
+    </tr>
 <?php }?>
   <tr>
-    <td height="16" colspan="5" align="right">---------------------------------------------------------------------------------------------------------------------------------------------------------</td>
-    </tr>
-<?php 
-$totaltransaski	= $lihat['total'];
-$kirim			= $totaltransaski - $grandtotal;
-?>    
+    <td height="16" colspan="11" align="right">-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------</td>
+    </tr>   
   <tr>
     <td height="20" colspan="2" align="right" bgcolor="#dad0d0"><strong>Jumlah Data : <?php if ($jumData==0){
 		echo "Kosong";}else{ echo "$jumData";} ?></strong></td>
-    <td colspan="2" align="right" bgcolor="#dad0d0"><strong>Total Transaksi Per Periode</strong></td>
-    <td align="right" bgcolor="#dad0d0"><strong><?php if ($grandtotal==0){echo "0";}else{echo"$grandtotal";}?></strong></td>
-  </tr>
+    <td colspan="7" align="right" bgcolor="#dad0d0"><strong>Jumlah Keuntungan :</strong></td>
+    <td align="center" bgcolor="#dad0d0"><strong><?php if ($jumData==0){
+		echo "0";}else{ echo "$keuntungan";} ?></strong></td>
+    </tr>
   <tr>
-    <td height="16" colspan="5" align="center" valign="bottom">---------------------------------------------------terimakasih telah belanja di jamku.com--------------------------------------------------------</td>
+    <td height="16" colspan="11" align="center" valign="bottom">-----------------------------------------------------------------------------------terimakasih telah belanja di jamku.com-------------------------------------------------------------------------------------</td>
   </tr>
 </table>
         
    	  </div>
-    </div>   
-           
+      <div class="center_title_bar4"> <span>
+          <?php if ($page >1){
+			$page-1;}else { $page+1;} ?>
+<a href=""> < </a>
+<?php 
+ 
+for($x=1;$x<=$halaman;$x++){
+	?>
+	<a href=""><?php echo $x ?> </a> 
+	<?php 
+} 
+?><a href=""> > </a>
+	</span>  </div>
+    </div>  
+   
     <!-- end of center content --><!-- end of right content -->
   </div>
  
